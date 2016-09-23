@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#3F51B5</color>
+    <color name="colorPrimaryDark">#303F9F</color>
+    <color name="colorAccent">#FF4081</color>
+    <color name="common_gray_line">#dadee6</color>
+    <color name="common_theme_blue">#3f6ed9</color>
+    <color name="common_bg_gray">#f6f7fb</color>
+    <color name="common_text_gray_dark">#696969</color>
+    <color name="common_btn_orange">#ff5c11</color>
+    <color name="common_btn_blue">#3d95ff</color>
+
+    <color name="common_yellow">#fac438</color>
+    <color name="common_blue_dark">#287de5</color>
+    <color name="common_orange_dark">#e0510f</color>
+    <color name="common_orange_light">#ff5c11</color>
+</resources>

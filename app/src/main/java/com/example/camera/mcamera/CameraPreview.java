@@ -25,6 +25,8 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     private SurfaceHolder mHolder;
     private Camera mCamera;
     private CameraActivity activity;
+    private int preViewWidth;
+    private int preViewHeight;
 
 
     public CameraPreview(Context context, CameraActivity activity) {
@@ -110,10 +112,19 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         return s;
     }
 
+    public void setPreviewSize(int width,int height){
+        preViewWidth = width;
+        preViewHeight = height;
+    }
+
 
     public void focusOnTouch(MotionEvent event) {
-        Rect focusRect = calculateTapArea(event.getRawX(), event.getRawY(), 1f);
-        Rect meteringRect = calculateTapArea(event.getRawX(), event.getRawY(), 1.5f);
+        float rawX = event.getRawX();
+        float rawY = event.getRawY();
+        float x = event.getX();
+        float y = event.getY();
+        Rect focusRect = calculateTapArea(event.getX(), event.getY(), 1f);
+        Rect meteringRect = calculateTapArea(event.getX(), event.getY(), 1.5f);
 
         Camera.Parameters parameters = mCamera.getParameters();
         parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
@@ -137,19 +148,33 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     }
 
     /**
+     * 前提是x,y对于Preview来说左上角坐标是(0,0)
      * Convert  touch  position  x:y  to  {@link  Camera.Area}  position  -1000:-1000  to  1000:1000.
      */
     protected Rect calculateTapArea(float x, float y, float coefficient) {
         float focusAreaSize = 300;
         int areaSize = Float.valueOf(focusAreaSize * coefficient).intValue();
 
-        int centerX = (int) (x / getResolution().width * 2000 - 1000);
-        int centerY = (int) (y / getResolution().height * 2000 - 1000);
+        int rw = getResolution().width;
+        int rh = getResolution().height;
+        if(preViewWidth==0||preViewHeight==0){
+            preViewWidth = getResolution().width;
+            preViewHeight = getResolution().height;
+        }
+        int centerX = (int) (x / preViewWidth * 2000 - 1000);
+        int centerY = (int) (y / preViewHeight * 2000 - 1000);
 
         int left = clamp(centerX - areaSize / 2, -1000, 1000);
         int right = clamp(left + areaSize, -1000, 1000);
         int top = clamp(centerY - areaSize / 2, -1000, 1000);
         int bottom = clamp(top + areaSize, -1000, 1000);
+
+        if(left>=right||top>=bottom){
+            left = -100;
+            right = 100;
+            top = -100;
+            bottom = 100;
+        }
 
         return new Rect(left, top, right, bottom);
     }

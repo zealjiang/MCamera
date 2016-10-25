@@ -789,6 +789,7 @@ public class CameraActivity extends AppCompatActivity implements PhotoAdapter.On
             mPreview = new CameraPreview(this, this);
             fLpreview = (FrameLayout) findViewById(R.id.camera_preview);
             fLpreview.addView(mPreview);
+            mPreview.setPreviewSize(preViewWidth,preViewHeight);
             mPreview.setOnTouchListener(new View.OnTouchListener() {
                 @Override
                 public boolean onTouch(View v, MotionEvent event) {

@@ -39,6 +39,10 @@ public class TestCameraActivity extends Activity {
             }
         });
 
+
+        throw new RuntimeException("This is a crash");
+
+
     }
 
     private void initData(){

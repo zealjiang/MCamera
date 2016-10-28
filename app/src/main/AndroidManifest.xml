@@ -6,6 +6,7 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
     <application
+        android:name=".app.App"
         android:allowBackup="true"
         android:icon="@mipmap/camera"
         android:label="@string/app_name"
@@ -25,6 +26,11 @@
         </activity>
         <activity
             android:name=".CameraActivity"
+            />
+
+        <meta-data
+            android:name="io.fabric.ApiKey"
+            android:value="2e137473770b6f44dba9798d33a705f2c263914d"
             />
     </application>
 

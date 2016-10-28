@@ -15,12 +15,10 @@ public class App extends Application {
         super.onCreate();
         app = this;
         Fabric.with(this, new Crashlytics());
-        // TODO: Move this to where you establish a user session
         logUser();
 
     }
     private void logUser() {
-        // TODO: Use the current user's information
         // You can call any combination of these three methods
         Crashlytics.setUserIdentifier("zealjiang");
         Crashlytics.setUserEmail("zealjiang@126.com");

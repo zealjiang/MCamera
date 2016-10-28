@@ -3,6 +3,7 @@ package com.example.camera.mcamera;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -13,6 +14,7 @@ import android.widget.TextView;
  */
 public class TestCameraActivity extends Activity {
 
+    private String TAG = TestCameraActivity.class.getName();
     private TextView tvPhotoPath;
     private Button btnSkip;
     //图片显示的名字，用来说明图片
@@ -49,10 +51,12 @@ public class TestCameraActivity extends Activity {
      * 使用公共的Camera
      */
     private void userCamera(){
+        Log.e(TAG+"开始",Util.time());
         Intent intent = new Intent(this,CameraActivity.class);
         intent.putExtra(CameraActivity.PHOTO_SHOW_NAMES,photoShowNames);
         intent.putExtra(CameraActivity.PHOTO_PATHS,photoPaths);
         startActivityForResult(intent,PHOTO_REQUEST);
+        Log.e(TAG+"结束",Util.time());
     }
 
     @Override

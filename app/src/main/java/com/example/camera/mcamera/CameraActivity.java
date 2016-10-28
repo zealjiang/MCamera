@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.ContentUris;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
@@ -20,7 +21,7 @@ import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -48,13 +49,15 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class CameraActivity extends AppCompatActivity implements PhotoAdapter.OnRecyclerViewListener {
 
     private final int FLAG_CHOOCE_PICTURE = 1001;
 
-    private final String TAG = "mcamera.CameraActivity";
+    private final String TAG = CameraActivity.class.getName();
     public static final int MEDIA_TYPE_IMAGE = 1;
     private Camera mCamera;
     private CameraPreview mPreview;
@@ -78,6 +81,8 @@ public class CameraActivity extends AppCompatActivity implements PhotoAdapter.On
     private View focusIndex;//手动对焦框
     private int preViewHeight;
     private int preViewWidth;
+    //相机预览区和拍照后生成的宽高比
+    private final float WIDTHHEIGHTSCALE = 16/9.0f;
     //默认前置或者后置相机 这里暂时设置为后置
     private int mCameraId = 0;
     //记录当前正在拍的是第几张图片
@@ -96,6 +101,7 @@ public class CameraActivity extends AppCompatActivity implements PhotoAdapter.On
     private boolean isTakeLast = false;
     //6.0拍照权限申请码
     private final static int CAMERA_REQESTCODE = 100;
+    final private int REQUEST_CODE_ASK_MULTIPLE_PERMISSIONS = 124;
     private Handler handler = new Handler();
 
 
@@ -103,7 +109,7 @@ public class CameraActivity extends AppCompatActivity implements PhotoAdapter.On
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Log.e(TAG, "onCreate()");
+        Log.e(TAG, "onCreate() "+Util.time());
         Fresco.initialize(this);
         //去title
         requestWindowFeature(Window.FEATURE_NO_TITLE);
@@ -244,29 +250,84 @@ public class CameraActivity extends AppCompatActivity implements PhotoAdapter.On
             Toast.makeText(this, "Flash mode setting is not supported.", Toast.LENGTH_SHORT).show();
         }
         mCamera.setParameters(p);
+
     }
 
 
+    private boolean addPermission(List<String> permissionsList, String permission) {
+        if (ActivityCompat.checkSelfPermission(this,permission) != PackageManager.PERMISSION_GRANTED) {
+            permissionsList.add(permission);
+            // Check for Rationale Option
+            if (!ActivityCompat.shouldShowRequestPermissionRationale(this,permission))//表明用户已经彻底禁止弹出权限请求
+                return false;
+        }
+        return true;
+    }
+
+    private void showMessageOKCancel(String message, DialogInterface.OnClickListener okListener) {
+        new AlertDialog.Builder(CameraActivity.this)
+                .setMessage(message)
+                .setPositiveButton("OK", okListener)
+                .setNegativeButton("Cancel", null)
+                .create()
+                .show();
+    }
+
     //处理6.0动态权限问题
     private void requestPermissionCamera() {
+
         if (Build.VERSION.SDK_INT >= 23) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA, android.Manifest.permission.WRITE_EXTERNAL_STORAGE}, CAMERA_REQESTCODE);
-            } else {
-                getCamera();
+            List<String> permissionsNeeded = new ArrayList<String>();
+            final List<String> permissionsList = new ArrayList<String>();
+            if (!addPermission(permissionsList, Manifest.permission.CAMERA))
+                permissionsNeeded.add("CAMERA");
+            if (!addPermission(permissionsList, Manifest.permission.WRITE_EXTERNAL_STORAGE))
+                permissionsNeeded.add("WRITE_EXTERNAL_STORAGE");
+
+            if (permissionsList.size() > 0) {
+                if (permissionsNeeded.size() > 0) {
+                    // Need Rationale
+                    String message = "You need to grant access to " + permissionsNeeded.get(0);
+                    for (int i = 1; i < permissionsNeeded.size(); i++) {
+                        message = message + ", " + permissionsNeeded.get(i);
+                    }
+                    showMessageOKCancel(message,
+                            new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    ActivityCompat.requestPermissions(CameraActivity.this, permissionsList.toArray(new String[permissionsList.size()]),
+                                            REQUEST_CODE_ASK_MULTIPLE_PERMISSIONS);
+                                }
+                            });
+                    return;
+                }
+                ActivityCompat.requestPermissions(CameraActivity.this, permissionsList.toArray(new String[permissionsList.size()]),
+                        REQUEST_CODE_ASK_MULTIPLE_PERMISSIONS);
+                return;
             }
-        } else {
-            getCamera();
         }
+
+        getCamera();
+
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        if (requestCode == CAMERA_REQESTCODE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED && grantResults[1] == PackageManager.PERMISSION_GRANTED) {
+        if(requestCode == REQUEST_CODE_ASK_MULTIPLE_PERMISSIONS){
+            Map<String, Integer> perms = new HashMap<String, Integer>();
+            // Fill with results
+            for (int i = 0; i < permissions.length; i++) {
+                perms.put(permissions[i], grantResults[i]);
+            }
+            // Check for ACCESS_FINE_LOCATION
+            if (perms.get(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+                    && perms.get(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+                // All Permissions Granted
                 getCamera();
             } else {
-                Toast.makeText(this, "需要允许拍照权限来拍照和写入权限来存储图片", Toast.LENGTH_LONG).show();
+                // Permission Denied
+                Toast.makeText(CameraActivity.this, "您拒绝了一些权限，需要允许拍照权限来拍照和写入权限来存储图片", Toast.LENGTH_SHORT)
+                        .show();
                 this.finish();
                 return;
             }
@@ -467,16 +528,27 @@ public class CameraActivity extends AppCompatActivity implements PhotoAdapter.On
         screenWidth = dm.widthPixels;
         screenHeight = dm.heightPixels;
 
+        //因为是横屏拍照，宽>高
+        int width,height;
+        if(screenWidth>screenHeight){
+            width = screenWidth;
+            height = screenHeight;
+        }else{
+            width = screenHeight;
+            height = screenWidth;
+        }
+
         //当前是横屏显示
         //预览区的宽高比4:3
         //高度 screenWidth - statusBarHeight 求宽度 高/宽 = 3/4  --->  宽=高*（4/3）
 
         int top  = (int) (50 * dm.density + 0.5f);
-        preViewHeight = screenHeight - top - statusBarHeight;
+        preViewHeight = height - top - statusBarHeight;
 
-        preViewWidth = preViewHeight * 4 / 3;
-        int rightWidth = screenWidth - preViewWidth;
-
+        preViewWidth = (int)(preViewHeight * WIDTHHEIGHTSCALE);
+        int rightWidth = width - preViewWidth;
+        Log.e(TAG,"preViewHeight * 4/3: "+preViewHeight * 4/3);
+        Log.e(TAG,"preViewHeight * (4/3): "+preViewHeight * 4/3);
 
         //这里相机取景框我这是为宽高比3:4 所以限制右部控件的高度是剩余部分
         LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) llControl.getLayoutParams();
